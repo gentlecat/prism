@@ -1,0 +1,24 @@
+services:
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+
+  prism:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+      - "8080:8080"
+    environment:
+      - TARGET_URL=http://backend:3000
+      - PROXY_PORT=8000
+      - ADMIN_PORT=8080
+    depends_on:
+      - backend

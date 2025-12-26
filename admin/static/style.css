@@ -1,0 +1,72 @@
+body {
+    padding-top: 56px;
+}
+
+.navbar {
+    background: white !important;
+    border-bottom: 2px solid;
+    border-image: linear-gradient(90deg, #ff0000 0%, #ff7f00 14%, #ffff00 28%, #00ff00 42%, #0000ff 57%, #4b0082 71%, #9400d3 85%, #ff0000 100%) 1;
+}
+
+.navbar-brand {
+    color: #2c3e50 !important;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #2c3e50;
+}
+
+.ip-code {
+    font-family: monospace;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.ip-details {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.ip-org {
+    font-size: 0.8rem;
+    color: #adb5bd;
+}
+
+.timestamp {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+.empty-state {
+    text-align: center;
+    color: #6c757d;
+    padding: 2rem 1rem;
+    font-style: italic;
+}
+
+.footer-info {
+    color: #6c757d;
+    font-size: 0.875rem;
+    font-style: italic;
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.navbar .container-fluid {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.main-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-bottom: 1.5rem;
+    padding-top: 20px;
+}
