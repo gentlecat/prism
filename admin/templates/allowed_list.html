@@ -3,7 +3,7 @@
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-start">
             <div class="flex-grow-1">
-                <div class="ip-code">{{.IP}}</div>
+                <div class="ip-address">{{.IP}}</div>
                 {{$loc := formatLocation .Info}}
                 {{if $loc}}<div class="ip-details">{{$loc}}</div>{{end}}
                 {{if and .Info .Info.Org}}<div class="ip-org">{{.Info.Org}}</div>{{end}}

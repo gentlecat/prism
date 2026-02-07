@@ -1,3 +1,4 @@
+/* Light mode (default) */
 body {
     padding-top: 56px;
 }
@@ -19,10 +20,25 @@ body {
     color: #2c3e50;
 }
 
-.ip-code {
+.ip-address {
     font-family: monospace;
     font-size: 0.95rem;
     font-weight: 500;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+    white-space: nowrap;
+}
+
+.ip-address::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 1) 100%);
+    pointer-events: none;
 }
 
 .ip-details {
@@ -69,4 +85,67 @@ body {
     padding-right: 15px;
     padding-bottom: 1.5rem;
     padding-top: 20px;
+}
+
+.card-body > .d-flex > .flex-grow-1 {
+    flex-grow: 0;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.card-body > .d-flex > .text-end {
+    flex-shrink: 0;
+    white-space: nowrap;
+    margin-left: 1rem;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #000000 !important;
+        color: #ffffff !important;
+    }
+
+    .navbar {
+        background: #000000 !important;
+        border-bottom-color: #333333 !important;
+    }
+
+    .navbar-brand {
+        color: #ffffff !important;
+    }
+
+    .section-title {
+        color: #ffffff !important;
+    }
+
+    .ip-details {
+        color: #e0e0e0 !important;
+    }
+
+    .ip-org {
+        color: #b0b0b0 !important;
+    }
+
+    .timestamp {
+        color: #e0e0e0 !important;
+    }
+
+    .empty-state {
+        color: #e0e0e0 !important;
+    }
+
+    .footer-info {
+        color: #e0e0e0 !important;
+    }
+
+    .card {
+        background-color: #111111 !important;
+        border-color: #333333 !important;
+        color: #ffffff !important;
+    }
+
+    .ip-address::after {
+        background: linear-gradient(90deg, transparent 0%, rgba(17, 17, 17, 1) 100%);
+    }
 }
