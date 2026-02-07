@@ -14,7 +14,7 @@
                     <button class="btn btn-success btn-sm" hx-post="/allow" hx-vals='{"ip": "{{.IP}}", "duration": 12}' hx-swap="none">12h</button>
                     <button class="btn btn-success btn-sm" hx-post="/allow" hx-vals='{"ip": "{{.IP}}", "duration": 24}' hx-swap="none">24h</button>
                 </div>
-                <div class="timestamp">{{formatTime .Timestamp}}</div>
+                <div class="secondary-details">{{formatTime .Timestamp}} ({{.AttemptNumber}} attempts)</div>
             </div>
         </div>
     </div>

@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-
 	targetURL := os.Getenv("TARGET_URL")
 	if targetURL == "" {
 		log.Fatal("TARGET_URL environment variable is required")
@@ -27,7 +26,7 @@ func main() {
 		proxyMux.HandleFunc("/", proxy.Handler(store, targetURL))
 		log.Printf("Proxy listening on port %s, forwarding to %s", proxyPort, targetURL)
 		if err := http.ListenAndServe(":"+proxyPort, proxyMux); err != nil {
-			log.Fatalf("Proxy server failed: %v", err)
+			log.Fatalf("Proxy server creation failed: %v", err)
 		}
 	}()
 
@@ -46,7 +45,7 @@ func main() {
 
 	log.Printf("Admin interface listening on port %s", adminPort)
 	if err := http.ListenAndServe(":"+adminPort, adminMux); err != nil {
-		log.Fatalf("Admin server failed: %v", err)
+		log.Fatalf("Admin interface creation failed: %v", err)
 	}
 }
 

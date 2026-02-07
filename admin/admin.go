@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"sort"
 	"strconv"
@@ -19,13 +20,11 @@ import (
 //go:embed templates/*
 var templatesFS embed.FS
 
-var (
-	tmpl = template.Must(template.New("").Funcs(template.FuncMap{
-		"formatTime":     formatTime,
-		"formatLocation": formatLocation,
-		"formatExpiry":   formatExpiry,
-	}).ParseFS(templatesFS, "templates/*.html"))
-)
+var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
+	"formatTime":     formatTime,
+	"formatLocation": formatLocation,
+	"formatExpiry":   formatExpiry,
+}).ParseFS(templatesFS, "templates/*.html"))
 
 func formatTime(t time.Time) string {
 	diff := time.Since(t)
@@ -80,9 +79,7 @@ type Server struct {
 }
 
 func New(store *allowlist.Allowlist) (*Server, error) {
-	return &Server{
-		storage: store,
-	}, nil
+	return &Server{storage: store}, nil
 }
 
 func (a *Server) HomeHandler(w http.ResponseWriter, r *http.Request) {
@@ -160,19 +157,34 @@ func (a *Server) AllowIPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ip := r.FormValue("ip")
-	durationHours, _ := strconv.Atoi(r.FormValue("duration"))
-
 	if ip == "" {
-		http.Error(w, "IP is required", http.StatusBadRequest)
+		http.Error(w, "IP address required", http.StatusBadRequest)
 		return
 	}
 
-	if durationHours <= 0 {
-		durationHours = 24 // default 24 hours
+	if net.ParseIP(ip) == nil {
+		http.Error(w, "Invalid IP", http.StatusBadRequest)
+		return
 	}
 
-	duration := time.Duration(durationHours) * time.Hour
-	a.storage.AllowIP(ip, duration)
+	durationStr := r.FormValue("duration")
+	if durationStr == "" {
+		http.Error(w, "Duration required", http.StatusBadRequest)
+		return
+	}
+
+	durationHours, err := strconv.Atoi(durationStr)
+	if err != nil || durationHours <= 0 {
+		http.Error(w, "Invalid duration", http.StatusBadRequest)
+		return
+	}
+
+	if err := a.storage.AllowIP(ip, time.Duration(durationHours)*time.Hour); err != nil {
+		log.Printf("Allow error: %v", err)
+		http.Error(w, "Failed", http.StatusInternalServerError)
+		return
+	}
+
 	log.Printf("IP allowed: %s for %d hours", ip, durationHours)
 
 	if r.Header.Get("HX-Request") != "" {
@@ -191,13 +203,22 @@ func (a *Server) DenyIPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ip := r.FormValue("ip")
-
 	if ip == "" {
-		http.Error(w, "IP is required", http.StatusBadRequest)
+		http.Error(w, "IP required", http.StatusBadRequest)
 		return
 	}
 
-	a.storage.DenyIP(ip)
+	if net.ParseIP(ip) == nil {
+		http.Error(w, "Invalid IP", http.StatusBadRequest)
+		return
+	}
+
+	if err := a.storage.DenyIP(ip); err != nil {
+		log.Printf("Failed to deny IP: %v", err)
+		http.Error(w, "Failed", http.StatusInternalServerError)
+		return
+	}
+
 	log.Printf("IP denied: %s", ip)
 
 	if r.Header.Get("HX-Request") != "" {

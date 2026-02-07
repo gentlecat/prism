@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"go.roman.zone/prism/allowlist"
@@ -13,16 +14,15 @@ import (
 func Handler(store *allowlist.Allowlist, targetURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		clientIP := extractClientIP(r)
-		if clientIP == "" {
-			log.Printf("Connection denied: unable to determine client IP for request %s %s", r.Method, r.URL.Path)
+		if clientIP == "" || net.ParseIP(clientIP) == nil {
+			log.Printf("Denied: invalid IP %s %s %s", clientIP, r.Method, r.URL.Path)
 			http.Error(w, "Access denied", http.StatusForbidden)
 			return
 		}
 
-		allowed := store.IsAllowed(clientIP)
-		if !allowed {
-			store.RecordAttempt(clientIP, allowed)
-			log.Printf("Connection denied for %s requesting %s %s", clientIP, r.Method, r.URL.Path)
+		if !store.IsAllowed(clientIP) {
+			store.RecordAttempt(clientIP, false)
+			log.Printf("Denied: %s %s %s", clientIP, r.Method, r.URL.Path)
 			http.Error(w, "Access denied", http.StatusForbidden)
 			return
 		}
@@ -32,12 +32,16 @@ func Handler(store *allowlist.Allowlist, targetURL string) http.HandlerFunc {
 }
 
 func proxyRequest(w http.ResponseWriter, r *http.Request, targetURL string) {
-	target := targetURL + r.URL.Path
-	if r.URL.RawQuery != "" {
-		target += "?" + r.URL.RawQuery
+	u, err := url.Parse(targetURL)
+	if err != nil {
+		log.Printf("Invalid target URL: %v", targetURL)
+		http.Error(w, "Error", http.StatusInternalServerError)
+		return
 	}
+	u.Path = r.URL.Path
+	u.RawQuery = r.URL.RawQuery
 
-	proxyReq, err := http.NewRequestWithContext(r.Context(), r.Method, target, r.Body)
+	proxyReq, err := http.NewRequestWithContext(r.Context(), r.Method, u.String(), r.Body)
 	if err != nil {
 		log.Printf("Error creating proxy request: %v", err)
 		http.Error(w, "Error creating proxy request", http.StatusInternalServerError)
@@ -58,8 +62,8 @@ func proxyRequest(w http.ResponseWriter, r *http.Request, targetURL string) {
 	}
 	resp, err := client.Do(proxyReq)
 	if err != nil {
-		log.Printf("Error forwarding request: %v", err)
-		http.Error(w, "Error forwarding request", http.StatusBadGateway)
+		log.Printf("Forwarding error: %v", err)
+		http.Error(w, "Error", http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
@@ -84,6 +88,7 @@ func extractClientIP(r *http.Request) string {
 	if ip := r.Header.Get("X-Real-IP"); ip != "" {
 		return ip
 	}
+
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
