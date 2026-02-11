@@ -8,7 +8,7 @@ jobs:
   build-image:
     runs-on: docker
     container:
-      image: node:20-bookworm
+      image: node:24-bookworm
       # Mount the dind socket on the container at the default location
       options: -v /dind:/dind
 
