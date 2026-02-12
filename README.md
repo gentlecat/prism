@@ -5,7 +5,7 @@ HTTP proxy with dynamic access control. Denies all connections by default, but p
 The reason I created this is that I need to have access to some of my apps from devices which don't support VPN connectivity to my private network. For example, my car runs Android and has a web browser, but I cannot install Tailscale there to access self-hosted apps like Jellyfin to watch movies. I don't expose self-hosted apps to the internet because I don't want to rely too much on any given app's security. This proxy seems like a good compromise.
 
 > [!WARNING]  
-> There's an assumption that you are going to have something like CloudFlare Tunnels in front of this proxy. Something that would be a trusted source of caller's IP address. Which would be populated in one of the supported request headers: `CF-Connecting-IP`, `X-Forwarded-For`, `X-Real-IP`.
+> There's an assumption that you are going to have something like CloudFlare Tunnels in front of this proxy. An additional layer that would be a trusted source of caller's IP address, which would be populated in one of the supported request headers: `CF-Connecting-IP`, `X-Forwarded-For`, `X-Real-IP`.
 
 ![Screenshot](screenshot.png)
 
