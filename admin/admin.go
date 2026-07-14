@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -150,9 +151,35 @@ func (a *Server) AllowedListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// rejectCrossSite blocks CSRF: a browser on the admin's network can be
+// scripted by any website to POST here (form POSTs skip CORS preflight),
+// so requests that carry cross-site fetch metadata or a mismatched
+// Origin are refused. Non-browser clients (curl) send neither header.
+func rejectCrossSite(w http.ResponseWriter, r *http.Request) bool {
+	site := r.Header.Get("Sec-Fetch-Site")
+	if site != "" && site != "same-origin" && site != "none" {
+		http.Error(w, "Cross-site request rejected", http.StatusForbidden)
+		return true
+	}
+	if origin := r.Header.Get("Origin"); origin != "" {
+		u, err := url.Parse(origin)
+		if err != nil || u.Host != r.Host {
+			http.Error(w, "Cross-site request rejected", http.StatusForbidden)
+			return true
+		}
+	}
+	return false
+}
+
+const maxAllowDurationHours = 24 * 30
+
 func (a *Server) AllowIPHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if rejectCrossSite(w, r) {
 		return
 	}
 
@@ -174,7 +201,7 @@ func (a *Server) AllowIPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	durationHours, err := strconv.Atoi(durationStr)
-	if err != nil || durationHours <= 0 {
+	if err != nil || durationHours <= 0 || durationHours > maxAllowDurationHours {
 		http.Error(w, "Invalid duration", http.StatusBadRequest)
 		return
 	}
@@ -199,6 +226,9 @@ func (a *Server) AllowIPHandler(w http.ResponseWriter, r *http.Request) {
 func (a *Server) DenyIPHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if rejectCrossSite(w, r) {
 		return
 	}
 
