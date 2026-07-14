@@ -15,7 +15,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-      - "8080:8080"
+      # The admin interface has no authentication; keep it off the network.
+      - "127.0.0.1:8080:8080"
     environment:
       - TARGET_URL=http://backend:3000
       - PROXY_PORT=8000
