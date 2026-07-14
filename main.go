@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"go.roman.zone/prism/admin"
 	"go.roman.zone/prism/allowlist"
@@ -21,11 +22,23 @@ func main() {
 	store := allowlist.New()
 
 	// PROXY
+	proxyHandler, err := proxy.Handler(store, targetURL)
+	if err != nil {
+		log.Fatalf("Failed to initialize proxy: %v", err)
+	}
 	go func() {
 		proxyMux := http.NewServeMux()
-		proxyMux.HandleFunc("/", proxy.Handler(store, targetURL))
+		proxyMux.HandleFunc("/", proxyHandler)
+		// No ReadTimeout/WriteTimeout here: they would cut off long
+		// streams and large uploads passing through the proxy.
+		proxyServer := &http.Server{
+			Addr:              ":" + proxyPort,
+			Handler:           proxyMux,
+			ReadHeaderTimeout: 10 * time.Second,
+			IdleTimeout:       2 * time.Minute,
+		}
 		log.Printf("Proxy listening on port %s, forwarding to %s", proxyPort, targetURL)
-		if err := http.ListenAndServe(":"+proxyPort, proxyMux); err != nil {
+		if err := proxyServer.ListenAndServe(); err != nil {
 			log.Fatalf("Proxy server creation failed: %v", err)
 		}
 	}()
@@ -43,8 +56,16 @@ func main() {
 	adminMux.HandleFunc("/deny", adminServer.DenyIPHandler)
 	adminMux.Handle("/static/", adminServer.StaticHandler())
 
+	server := &http.Server{
+		Addr:              ":" + adminPort,
+		Handler:           adminMux,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+	}
 	log.Printf("Admin interface listening on port %s", adminPort)
-	if err := http.ListenAndServe(":"+adminPort, adminMux); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Admin interface creation failed: %v", err)
 	}
 }
