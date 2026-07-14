@@ -4,14 +4,24 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net"
+	"net/netip"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	"go.roman.zone/prism/ipinfo"
+)
+
+const (
+	// Attempts come from attacker-controlled IPs (spoofable via identity
+	// headers), so the map is capped: once full, the oldest entry is
+	// evicted to make room.
+	maxTrackedIPs = 1000
+
+	expirySweepInterval = 10 * time.Minute
 )
 
 type AllowedIP struct {
@@ -37,6 +47,16 @@ type Allowlist struct {
 	logger            *log.Logger
 }
 
+// CanonicalIP normalizes an IP address so that equivalent notations
+// (e.g. "::ffff:1.2.3.4" and "1.2.3.4") map to the same allowlist key.
+func CanonicalIP(raw string) (string, bool) {
+	addr, err := netip.ParseAddr(strings.TrimSpace(raw))
+	if err != nil {
+		return "", false
+	}
+	return addr.Unmap().WithZone("").String(), true
+}
+
 func New() *Allowlist {
 	var logWriter = log.Writer()
 	if logPath := os.Getenv("ACCESS_LOG"); logPath != "" {
@@ -58,7 +78,7 @@ func New() *Allowlist {
 
 	logger := log.New(logWriter, "", log.LstdFlags)
 
-	return &Allowlist{
+	s := &Allowlist{
 		allowedIPs:        make(map[string]AllowedIP),
 		attemptsByIP:      make(map[string]ConnectionAttempt),
 		recentAttempts:    make([]ConnectionAttempt, 0),
@@ -66,10 +86,28 @@ func New() *Allowlist {
 		ipInfoCache:       ipinfo.NewRetriever(),
 		logger:            logger,
 	}
+
+	go s.sweepExpired()
+
+	return s
+}
+
+func (s *Allowlist) sweepExpired() {
+	for range time.Tick(expirySweepInterval) {
+		now := time.Now()
+		s.mu.Lock()
+		for ip, allowed := range s.allowedIPs {
+			if !now.Before(allowed.ExpiresAt) {
+				delete(s.allowedIPs, ip)
+			}
+		}
+		s.mu.Unlock()
+	}
 }
 
 func (s *Allowlist) IsAllowed(ip string) bool {
-	if net.ParseIP(ip) == nil {
+	ip, ok := CanonicalIP(ip)
+	if !ok {
 		return false
 	}
 
@@ -84,7 +122,8 @@ func (s *Allowlist) IsAllowed(ip string) bool {
 }
 
 func (s *Allowlist) AllowIP(ip string, duration time.Duration) error {
-	if net.ParseIP(ip) == nil {
+	ip, ok := CanonicalIP(ip)
+	if !ok {
 		return errors.New("invalid IP address")
 	}
 
@@ -111,7 +150,8 @@ func (s *Allowlist) AllowIP(ip string, duration time.Duration) error {
 }
 
 func (s *Allowlist) DenyIP(ip string) error {
-	if net.ParseIP(ip) == nil {
+	ip, ok := CanonicalIP(ip)
+	if !ok {
 		return errors.New("invalid IP address")
 	}
 
@@ -142,7 +182,8 @@ func (s *Allowlist) GetAllowedIPs() []AllowedIP {
 }
 
 func (s *Allowlist) RecordAttempt(ip string, allowed bool, path string) {
-	if net.ParseIP(ip) == nil {
+	ip, ok := CanonicalIP(ip)
+	if !ok {
 		return
 	}
 
@@ -154,6 +195,8 @@ func (s *Allowlist) RecordAttempt(ip string, allowed bool, path string) {
 	attemptNumber := 1
 	if existing, ok := s.attemptsByIP[ip]; ok {
 		attemptNumber = existing.AttemptNumber + 1
+	} else if len(s.attemptsByIP) >= maxTrackedIPs {
+		s.evictOldestAttempt()
 	}
 
 	attempt := ConnectionAttempt{
@@ -177,6 +220,22 @@ func (s *Allowlist) RecordAttempt(ip string, allowed bool, path string) {
 			location = fmt.Sprintf(" (City: %s, Region: %s, Country: %s, Org: %s)", info.City, info.Region, info.Country, info.Org)
 		}
 		s.logger.Printf("UNSUCCESSFUL_ACCESS: IP %s attempt #%d path=%s%s", ip, attemptNumber, path, location)
+	}
+}
+
+// evictOldestAttempt removes the attempt with the oldest timestamp.
+// The caller must hold s.mu.
+func (s *Allowlist) evictOldestAttempt() {
+	var oldestIP string
+	var oldestTime time.Time
+	for ip, attempt := range s.attemptsByIP {
+		if oldestIP == "" || attempt.Timestamp.Before(oldestTime) {
+			oldestIP = ip
+			oldestTime = attempt.Timestamp
+		}
+	}
+	if oldestIP != "" {
+		delete(s.attemptsByIP, oldestIP)
 	}
 }
 
