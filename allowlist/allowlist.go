@@ -2,9 +2,14 @@ package allowlist
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"net"
+	"os"
 	"sync"
 	"time"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	"go.roman.zone/prism/ipinfo"
 )
@@ -29,15 +34,37 @@ type Allowlist struct {
 	recentAttempts    []ConnectionAttempt
 	maxRecentAttempts int
 	ipInfoCache       *ipinfo.IPInfoRetriever
+	logger            *log.Logger
 }
 
 func New() *Allowlist {
+	var logWriter = log.Writer()
+	if logPath := os.Getenv("ACCESS_LOG"); logPath != "" {
+		rotating := &lumberjack.Logger{
+			Filename:   logPath,
+			MaxSize:    100,
+			MaxBackups: 3,
+			MaxAge:     7,
+		}
+		// Verify the path is writable now: log.Logger discards write
+		// errors, so a bad path would otherwise lose the log silently.
+		line := time.Now().Format("2006/01/02 15:04:05") + " ACCESS_LOG opened\n"
+		if _, err := rotating.Write([]byte(line)); err != nil {
+			log.Printf("Cannot write access log %s: %v; logging to stderr instead", logPath, err)
+		} else {
+			logWriter = rotating
+		}
+	}
+
+	logger := log.New(logWriter, "", log.LstdFlags)
+
 	return &Allowlist{
 		allowedIPs:        make(map[string]AllowedIP),
 		attemptsByIP:      make(map[string]ConnectionAttempt),
 		recentAttempts:    make([]ConnectionAttempt, 0),
 		maxRecentAttempts: 30,
 		ipInfoCache:       ipinfo.NewRetriever(),
+		logger:            logger,
 	}
 }
 
@@ -64,9 +91,14 @@ func (s *Allowlist) AllowIP(ip string, duration time.Duration) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	expiresAt := time.Now().Add(duration)
 	s.allowedIPs[ip] = AllowedIP{
 		IP:        ip,
-		ExpiresAt: time.Now().Add(duration),
+		ExpiresAt: expiresAt,
+	}
+
+	if s.logger != nil {
+		s.logger.Printf("ALLOWLIST_CHANGED: IP %s added to allowlist, expires at %s", ip, expiresAt.Format(time.RFC3339))
 	}
 
 	if attempt, ok := s.attemptsByIP[ip]; ok {
@@ -87,6 +119,11 @@ func (s *Allowlist) DenyIP(ip string) error {
 	defer s.mu.Unlock()
 
 	delete(s.allowedIPs, ip)
+
+	if s.logger != nil {
+		s.logger.Printf("ALLOWLIST_CHANGED: IP %s removed from allowlist", ip)
+	}
+
 	return nil
 }
 
@@ -104,7 +141,7 @@ func (s *Allowlist) GetAllowedIPs() []AllowedIP {
 	return ips
 }
 
-func (s *Allowlist) RecordAttempt(ip string, allowed bool) {
+func (s *Allowlist) RecordAttempt(ip string, allowed bool, path string) {
 	if net.ParseIP(ip) == nil {
 		return
 	}
@@ -132,6 +169,14 @@ func (s *Allowlist) RecordAttempt(ip string, allowed bool) {
 
 	if len(s.recentAttempts) > s.maxRecentAttempts {
 		s.recentAttempts = s.recentAttempts[1:]
+	}
+
+	if !allowed && s.logger != nil {
+		location := ""
+		if info != nil {
+			location = fmt.Sprintf(" (City: %s, Region: %s, Country: %s, Org: %s)", info.City, info.Region, info.Country, info.Org)
+		}
+		s.logger.Printf("UNSUCCESSFUL_ACCESS: IP %s attempt #%d path=%s%s", ip, attemptNumber, path, location)
 	}
 }
 

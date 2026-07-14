@@ -23,7 +23,7 @@ func TestRecordAttempt(t *testing.T) {
 	al.ipInfoCache.SetBaseURL(server.URL + "/")
 
 	ip := "8.8.8.8"
-	al.RecordAttempt(ip, false)
+	al.RecordAttempt(ip, false, "/test")
 
 	attempts := al.GetRecentAttempts()
 	if len(attempts) != 1 {

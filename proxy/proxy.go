@@ -21,7 +21,7 @@ func Handler(store *allowlist.Allowlist, targetURL string) http.HandlerFunc {
 		}
 
 		if !store.IsAllowed(clientIP) {
-			store.RecordAttempt(clientIP, false)
+			store.RecordAttempt(clientIP, false, r.URL.Path)
 			log.Printf("Denied: %s %s %s", clientIP, r.Method, r.URL.Path)
 			http.Error(w, "Access denied", http.StatusForbidden)
 			return
