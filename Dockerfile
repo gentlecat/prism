@@ -8,7 +8,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o prism .
 
-FROM alpine:3.21
+FROM alpine:3.24
 
 # Fixed UID/GID so bind-mounted volumes can be chowned predictably.
 RUN apk --no-cache add ca-certificates \
