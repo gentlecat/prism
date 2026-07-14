@@ -6,6 +6,8 @@ The reason I created this is that I need to have access to some of my apps from 
 
 > [!WARNING]  
 > There's an assumption that you are going to have something like CloudFlare Tunnels in front of this proxy. An additional layer that would be a trusted source of caller's IP address, which would be populated in one of the supported request headers: `CF-Connecting-IP`, `X-Forwarded-For`, `X-Real-IP`.
+>
+> These headers are trusted unconditionally, so the proxy port must not be reachable any other way: anyone who can connect to it directly can impersonate an allowlisted IP by setting one of the headers.
 
 ![Screenshot](screenshot.png)
 
@@ -44,6 +46,7 @@ Required:
 Optional:
 - `PROXY_PORT` - Proxy port (default: `8000`)
 - `ADMIN_PORT` - Admin port (default: `8080`)
+- `ACCESS_LOG` - Path to the access log file (rotated automatically). When unset, entries go to stderr. To keep the log across container updates, point it into a mounted volume, e.g. `/data/allowlist.log`. The container runs as user `1000`, so make sure the mounted directory is writable by that user.
 
 ## Process overview
 
