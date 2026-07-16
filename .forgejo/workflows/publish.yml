@@ -18,7 +18,7 @@ jobs:
             runner: amd64
           - platform: linux/arm64
             arch: arm64
-            runner: pi
+            runner: arm64
     runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
