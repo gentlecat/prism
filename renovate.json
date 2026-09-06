@@ -11,5 +11,16 @@
     "renovate"
   ],
   "configMigration": true,
-  "prHourlyLimit": 0
+  "prHourlyLimit": 0,
+  "packageRules": [
+    {
+      "description": "Auto-merge everything but major bumps once checks pass",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "digest"
+      ],
+      "automerge": true
+    }
+  ]
 }
