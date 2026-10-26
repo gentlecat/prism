@@ -84,6 +84,7 @@ jobs:
       - name: Create multi-arch manifests
         shell: bash
         run: |
-          for img in "${{ vars.FORGEJO_DOMAIN }}/${{ github.repository_owner }}/prism" "codeberg.org/r1/prism"; do
-            docker buildx imagetools create -t "$img:latest" "$img:amd64" "$img:arm64"
-          done
+          img="${{ vars.FORGEJO_DOMAIN }}/${{ github.repository_owner }}/prism"
+          docker buildx imagetools create -t "$img:latest" -t "$img:build-$(date -u +%Y%m%d-%H%M%S)" "$img:amd64" "$img:arm64"
+          img="codeberg.org/r1/prism"
+          docker buildx imagetools create -t "$img:latest" "$img:amd64" "$img:arm64"
