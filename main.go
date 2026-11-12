@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -16,6 +17,7 @@ func main() {
 	if targetURL == "" {
 		log.Fatal("TARGET_URL environment variable is required")
 	}
+	proxyHost := os.Getenv("PROXY_HOST")
 	proxyPort := getEnv("PROXY_PORT", "8000")
 	adminPort := getEnv("ADMIN_PORT", "8080")
 
@@ -32,12 +34,12 @@ func main() {
 		// No ReadTimeout/WriteTimeout here: they would cut off long
 		// streams and large uploads passing through the proxy.
 		proxyServer := &http.Server{
-			Addr:              ":" + proxyPort,
+			Addr:              net.JoinHostPort(proxyHost, proxyPort),
 			Handler:           proxyMux,
 			ReadHeaderTimeout: 10 * time.Second,
 			IdleTimeout:       2 * time.Minute,
 		}
-		log.Printf("Proxy listening on port %s, forwarding to %s", proxyPort, targetURL)
+		log.Printf("Proxy listening on %s, forwarding to %s", proxyServer.Addr, targetURL)
 		if err := proxyServer.ListenAndServe(); err != nil {
 			log.Fatalf("Proxy server creation failed: %v", err)
 		}

@@ -44,6 +44,7 @@ Required:
 - `TARGET_URL` - Backend URL (e.g., `http://backend:8080`)
 
 Optional:
+- `PROXY_HOST` - Address the proxy listens on (default: all interfaces). Set it to `127.0.0.1` when the tunnel shares the proxy's network namespace, so nothing else can reach the proxy port.
 - `PROXY_PORT` - Proxy port (default: `8000`)
 - `ADMIN_PORT` - Admin port (default: `8080`)
 - `ACCESS_LOG` - Path to the access log file (rotated automatically). When unset, entries go to stderr. To keep the log across container updates, point it into a mounted volume, e.g. `/data/allowlist.log`. The container runs as user `1000`, so make sure the mounted directory is writable by that user.
