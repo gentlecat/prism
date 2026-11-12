@@ -47,6 +47,7 @@ Optional:
 - `PROXY_HOST` - Address the proxy listens on (default: all interfaces). Set it to `127.0.0.1` when the tunnel shares the proxy's network namespace, so nothing else can reach the proxy port.
 - `PROXY_PORT` - Proxy port (default: `8000`)
 - `ADMIN_PORT` - Admin port (default: `8080`)
+- `ADMIN_ALLOWED_NETS` - Comma-separated networks allowed to use the admin interface, such as `10.0.0.0/16,100.64.0.0/10` (default: any). Matched against the connection's address, never forwarded-IP headers, so set it whenever untrusted hosts share the proxy's network.
 - `ACCESS_LOG` - Path to the access log file (rotated automatically). When unset, entries go to stderr. To keep the log across container updates, point it into a mounted volume, e.g. `/data/allowlist.log`. The container runs as user `1000`, so make sure the mounted directory is writable by that user.
 
 ## Process overview

@@ -20,6 +20,10 @@ func main() {
 	proxyHost := os.Getenv("PROXY_HOST")
 	proxyPort := getEnv("PROXY_PORT", "8000")
 	adminPort := getEnv("ADMIN_PORT", "8080")
+	adminNets, err := admin.ParseNets(os.Getenv("ADMIN_ALLOWED_NETS"))
+	if err != nil {
+		log.Fatalf("Invalid ADMIN_ALLOWED_NETS: %v", err)
+	}
 
 	store := allowlist.New()
 
@@ -60,7 +64,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:              ":" + adminPort,
-		Handler:           adminMux,
+		Handler:           admin.RestrictTo(adminNets, adminMux),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      60 * time.Second,
