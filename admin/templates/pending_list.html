@@ -9,12 +9,15 @@
                 {{if and .Info .Info.Org}}<div class="ip-org">{{.Info.Org}}</div>{{end}}
             </div>
             <div class="text-end">
-                <div class="btn-group">
-                    <button class="btn btn-success btn-sm" hx-post="/allow" hx-vals='{"ip": "{{.IP}}", "duration": 1}' hx-swap="none">1h</button>
-                    <button class="btn btn-success btn-sm" hx-post="/allow" hx-vals='{"ip": "{{.IP}}", "duration": 12}' hx-swap="none">12h</button>
-                    <button class="btn btn-success btn-sm" hx-post="/allow" hx-vals='{"ip": "{{.IP}}", "duration": 24}' hx-swap="none">24h</button>
+                <div class="allow-actions">
+                    <span class="allow-label" aria-hidden="true">Allow for</span>
+                    <div class="btn-group" role="group" aria-label="Allow {{.IP}} for">
+                        <button class="btn btn-success btn-sm" hx-post="/allow" hx-vals='{"ip": "{{.IP}}", "duration": 1}' hx-swap="none" aria-label="Allow {{.IP}} for 1 hour">1h</button>
+                        <button class="btn btn-success btn-sm" hx-post="/allow" hx-vals='{"ip": "{{.IP}}", "duration": 12}' hx-swap="none" aria-label="Allow {{.IP}} for 12 hours">12h</button>
+                        <button class="btn btn-success btn-sm" hx-post="/allow" hx-vals='{"ip": "{{.IP}}", "duration": 24}' hx-swap="none" aria-label="Allow {{.IP}} for 24 hours">24h</button>
+                    </div>
                 </div>
-                <div class="secondary-details">{{formatTime .Timestamp}} ({{.AttemptNumber}} attempts)</div>
+                <div class="secondary-details">{{formatTime .Timestamp}} ({{.AttemptNumber}} {{if eq .AttemptNumber 1}}attempt{{else}}attempts{{end}})</div>
             </div>
         </div>
     </div>

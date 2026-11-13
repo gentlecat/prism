@@ -26,19 +26,20 @@ body {
     font-weight: 500;
     min-width: 0;
     overflow: hidden;
-    position: relative;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.ip-address::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 40px;
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 1) 100%);
-    pointer-events: none;
+.allow-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.allow-label {
+    font-size: 0.8rem;
+    color: #6c757d;
 }
 
 .ip-details {
@@ -99,6 +100,27 @@ body {
     margin-left: 1rem;
 }
 
+/* On phones the buttons go on their own line under the address. */
+@media (max-width: 575.98px) {
+    .card-body > .d-flex {
+        flex-wrap: wrap;
+    }
+
+    .card-body > .d-flex > .flex-grow-1 {
+        flex: 1 1 100%;
+    }
+
+    .card-body > .d-flex > .text-end {
+        margin-left: 0;
+        margin-top: 0.75rem;
+        text-align: left !important;
+    }
+
+    .allow-actions {
+        justify-content: flex-start;
+    }
+}
+
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
     body {
@@ -145,7 +167,7 @@ body {
         color: #ffffff !important;
     }
 
-    .ip-address::after {
-        background: linear-gradient(90deg, transparent 0%, rgba(17, 17, 17, 1) 100%);
+    .allow-label {
+        color: #e0e0e0;
     }
 }
